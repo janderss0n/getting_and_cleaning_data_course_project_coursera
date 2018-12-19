@@ -1,3 +1,11 @@
+installAndLoadLibraries <- function(libraries) {
+    for (package in libraries) {
+        if (!require(package, character.only=T, quietly=T)) {
+            install.packages(package)
+        }
+        library(package, character.only=T)
+    }
+}
 
 fetchData <- function(url, dir, zipFileName) {
     if (!file.exists(zipFileName)) {
@@ -57,6 +65,8 @@ createAvgOfEachVariableAndActivity <- function(data) {
 
 
 main <- function() {
+    installAndLoadLibraries(c("dplyr"))
+    
     url = "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
     dir <- "./UCI HAR Dataset"
     zipFileName <- "UCIdata.zip"
