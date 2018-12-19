@@ -1,46 +1,73 @@
 
+fetchData <- function(url, dir, zipFileName) {
+    if (!file.exists(zipFileName)) {
+        download.file(url, zipFileName)
+    }
+    
+    if (!file.exists(dir)) {
+        unzip(zipFileName)
+    }
+}
 
 
-get_and_merge_data <- function(data_folder) {
-    column_names <- read.table(paste(data_folder, "/features.txt", sep=""))[,2]
+loadAndMergeData <- function(dir) {
+    column_names <- read.table(paste(dir, "/features.txt", sep=""))[,2]
+    train <- loadAndMergeXAndY(dir, column_names, paste(dir, "/train/X_train.txt", sep=""), paste(dir, "/train/y_train.txt", sep=""))
+    test <- loadAndMergeXAndY(dir, column_names, paste(dir, "/test/X_test.txt", sep=""), paste(dir, "/test/y_test.txt", sep=""))
     
-    train <- get_and_merge_X_and_y(column_names, paste(data_folder, "/train/X_train.txt", sep=""), paste(data_folder, "/train/y_train.txt", sep=""))
-    test <- get_and_merge_X_and_y(column_names, paste(data_folder, "/test/X_test.txt", sep=""), paste(data_folder, "/test/y_test.txt", sep=""))
-    
+    # 1. Merges the training and the test sets to create one data set.
     rbind(train, test)
 }
 
-get_and_merge_X_and_y <- function(column_names, X_path, y_path) {
-    X <- read.table(X_path, col.names = column_names)
-    y <- read.csv(y_path, header=FALSE)
-    X$activity <- activity_to_name(y)
+
+loadAndMergeXAndY <- function(dir, columnNames, XPath, yPath) {
+    X <- read.table(XPath, col.names = columnNames)
+    y <- read.table(yPath, header=FALSE)
+    X$activity <- activityToName(dir, y)
     X
 }
 
-activity_to_name <- function(y) {
-    new_y <- sapply(y[,1], function(x) switch(x, "LAYING", "SITTING", "STANDING", "WALKING", "WALKING_DOWNSTAIRS", "WALKING_UPSTAIRS"))
+activityToName <- function(dir, y) {
+    # 3. Uses descriptive activity names to name the activities in the data set
+    activityLabels <- read.table(paste(dir, "/activity_labels.txt", sep=""))
+    yNames <- left_join(y, activityLabels, by=("V1"="V1"))[,2]
 }
 
-extract_mean_std_columns <- function(data) {
-    mean_columns <- grep("mean", names(data))
-    std_columns <- grep("std", names(data))
-    activity_column <- which("activity" == n)
-    columns_to_keep <- c(mean_columns, std_columns, activity_column)
-    data[, columns_to_keep]
+extractMeanStdColumns <- function(data) {
+    # 2. Extracts only the measurements on the mean and standard deviation for each measurement.
+    meanAndStdColumns <- grep("mean|std", names(data))
+    activityColumnNumber <- which("activity" == names(data))
+    columnsToKeep <- c(meanAndStdColumns, activityColumnNumber)
+    data[, columnsToKeep]
 }
 
-prettify_variable_names <- function(column_names) {
-    gsub("\\.", "", tolower(column_names))
+prettifyVariableNames <- function(columnNames) {
+    # 4. Appropriately labels the data set with descriptive variable names.
+    gsub("mean", "Mean", columnNames) %>%
+    gsub("std", "Std", .) %>%
+    gsub("\\.", "", .)
 }
 
-main() {
-    data_folder <- "./UCI HAR Dataset"
-    all_data <- get_and_merge_data(data_folder)
-    mean_std_data <- extract_mean_std_columns(all_data)
-    names(mean_std_data) <- prettify_variable_names(names(mean_std_data))
+createAvgOfEachVariableAndActivity <- function(data) {
+    # 5. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+    avgOfEachVariableAndActivity <- data %>% group_by(activity) %>% summarise_all(funs(mean))
+    names(avgOfEachVariableAndActivity) <- paste("Avg", names(avgOfEachVariableAndActivity), sep="")
+    avgOfEachVariableAndActivity
+}
+
+
+main <- function() {
+    url = "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+    dir <- "./UCI HAR Dataset"
+    zipFileName <- "UCIdata.zip"
     
-    average_of_data <- mean_std_data %>% group_by(activity) %>% summarise_all(funs(mean))
-    names(average_of_data) <- paste("avg", names(average_of_data), sep="")
+    fetchData(url, dir, zipFileName)
+    allData <- loadAndMergeData(dir) # This fixes task 1 and 3.
+    meanStdData <- extractMeanStdColumns(allData) # Fixes task 2.
+    names(meanStdData) <- prettifyVariableNames(names(meanStdData)) # Fixes task 4.
+    
+    tidyData <- createAvgOfEachVariableAndActivity(meanStdData) # Fixes task 5.
+    write.table(tidyData, file="./tidy_data.txt", row.name=FALSE)
 }
 
 main()
