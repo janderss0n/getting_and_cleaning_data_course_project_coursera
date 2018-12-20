@@ -10,7 +10,7 @@ This function will install (if not already installed) and load the packaged pass
 
 ### fetchData()
 This function will download the data zip file as well as extract the zip file if either of or both of 
-these taskes haven't already been performed.
+these tasks haven't already been performed.
 
 ### loadAndMergeData()
 This function fixes task 1 and 3. It first calls the function loadAndMergeXAndY() to load the 
