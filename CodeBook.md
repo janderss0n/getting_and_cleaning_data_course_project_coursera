@@ -6,7 +6,7 @@ to performed the different tasks in the project, se the descriptions below. In t
 written to the tidy_data.txt file.
 
 ### installAndLoadLibraries()
-This function will install (if not already installed) and load the packaged passed into this function.
+This function will install (if not already installed) and load the packages passed into this function.
 
 ### fetchData()
 This function will download the data zip file as well as extract the zip file if either of or both of 
